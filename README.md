@@ -2,7 +2,7 @@
 
 A small Nix-built container that combines **Tailscale** and **Caddy** as a reusable network sidecar. Caddy includes the Cloudflare DNS module for ACME DNS challenges. The image is distroless apart from its runtime tools; no Docker/Podman socket or dynamic container discovery is used.
 
-**Recommended image name:** `tailnet-gateway` (GHCR: `ghcr.io/rogernavelsaker/tailnet-gateway`). The previous `ts-caddy-gateway` name is published as a compatibility alias by the workflow.
+**Recommended image name:** `tailnet-gateway` (GHCR: `ghcr.io/rogernavelsaker/tailnet-gateway`). The previous `tailnet-gateway` name is published as a compatibility alias by the workflow.
 
 ## Configuration model
 
@@ -81,6 +81,6 @@ podman load < result
 
 ## GitHub Actions publishing
 
-`.github/workflows/publish.yml` builds and checks the Nix image on pull requests. Pushes to the default branch publish `latest`, branch, and commit-SHA tags; `v*` tags also publish version tags. The workflow publishes the canonical `tailnet-gateway` image and the legacy `ts-caddy-gateway` alias to GHCR using the repository's `GITHUB_TOKEN`.
+`.github/workflows/publish.yml` builds and checks the Nix image on pull requests. Pushes to the default branch publish `latest`, branch, and commit-SHA tags; `v*` tags also publish version tags. The workflow publishes the canonical `tailnet-gateway` image and the legacy `tailnet-gateway` alias to GHCR using the repository's `GITHUB_TOKEN`.
 
 Publishing requires a GitHub repository with Actions enabled and the workflow's `packages: write` permission. The checkout currently has no Git remote configured, so the workflow has not been run against GitHub from this workspace.
