@@ -24,13 +24,27 @@
           TS_STATE_DIR="''${TS_STATE_DIR:-/var/lib/tailscale}"
           TS_SOCKET="''${TS_SOCKET:-/var/run/tailscale/tailscaled.sock}"
           CADDYFILE="''${CADDYFILE:-/etc/caddy/Caddyfile}"
+          CADDY_ADAPTER="''${CADDY_ADAPTER:-caddyfile}"
+
+          if [ -n "''${TS_AUTHKEY_FILE:-}" ]; then
+            TS_AUTHKEY="$(< "$TS_AUTHKEY_FILE")"
+            export TS_AUTHKEY
+          fi
+          if [ -n "''${CLOUDFLARE_API_TOKEN_FILE:-}" ]; then
+            CLOUDFLARE_API_TOKEN="$(< "$CLOUDFLARE_API_TOKEN_FILE")"
+            export CLOUDFLARE_API_TOKEN
+          fi
+
+          read -r -a TS_DAEMON_ARGS <<< "''${TS_DAEMON_ARGS:-}"
+          read -r -a TS_EXTRA_ARGS <<< "''${TS_EXTRA_ARGS:-}"
 
           mkdir -p "$TS_STATE_DIR" "$(dirname "$TS_SOCKET")" /var/log /data /config
 
-          echo "[ts-caddy-gateway] Starting tailscaled..."
+          echo "[tailnet-gateway] Starting tailscaled..."
           ${pkgs.tailscale}/bin/tailscaled \
             --state="$TS_STATE_DIR/tailscaled.state" \
-            --socket="$TS_SOCKET" &
+            --socket="$TS_SOCKET" \
+            "''${TS_DAEMON_ARGS[@]}" &
           TAILSCALED_PID=$!
 
           # Wait for tailscaled socket
@@ -40,15 +54,15 @@
 
           # Bring up tailscale if authkey provided
           if [ -n "''${TS_AUTHKEY:-}" ]; then
-            echo "[ts-caddy-gateway] Authenticating Tailscale node..."
+            echo "[tailnet-gateway] Authenticating Tailscale node..."
             ${pkgs.tailscale}/bin/tailscale --socket="$TS_SOCKET" up \
               --auth-key="$TS_AUTHKEY" \
-              --hostname="''${TS_HOSTNAME:-ts-caddy-gateway}" \
-              ''${TS_EXTRA_ARGS:-}
+              --hostname="''${TS_HOSTNAME:-tailnet-gateway}" \
+              "''${TS_EXTRA_ARGS[@]}"
           fi
 
-          echo "[ts-caddy-gateway] Starting Caddy..."
-          ${caddyWithCloudflare}/bin/caddy run --config "$CADDYFILE" --adapter caddyfile &
+          echo "[tailnet-gateway] Starting Caddy..."
+          ${caddyWithCloudflare}/bin/caddy run --config "$CADDYFILE" --adapter "$CADDY_ADAPTER" &
           CADDY_PID=$!
 
           trap 'kill -TERM $CADDY_PID $TAILSCALED_PID 2>/dev/null; wait' SIGTERM SIGINT
@@ -57,7 +71,7 @@
         '';
 
         baseImage = pkgs.dockerTools.buildLayeredImage {
-          name = "ghcr.io/rogernavelsaker/ts-caddy-gateway";
+          name = "tailnet-gateway";
           tag = "latest";
           maxLayers = 16;
 
@@ -73,6 +87,13 @@
           ];
 
           config = {
+            Labels = {
+              "org.opencontainers.image.title" = "Tailnet Gateway";
+              "org.opencontainers.image.description" = "Tailscale network sidecar with Caddy reverse proxy and Cloudflare DNS support";
+              "org.opencontainers.image.source" = "https://github.com/RogerNavelsaker/tailnet-gateway";
+              "org.opencontainers.image.vendor" = "Roger Navelsaker";
+              "org.opencontainers.image.revision" = if self ? dirtyRev then self.dirtyRev else self.rev or "unknown";
+            };
             Entrypoint = [ "${entrypoint}/bin/entrypoint.sh" ];
             Env = [
               "PATH=${pkgs.lib.makeBinPath [ pkgs.coreutils pkgs.bash pkgs.iptables pkgs.iproute2 pkgs.tailscale caddyWithCloudflare ]}"
@@ -103,6 +124,7 @@
       in {
         packages = {
           default = baseImage;
+          entrypoint = entrypoint;
           caddy = caddyWithCloudflare;
           tailscale = pkgs.tailscale;
           image = baseImage;
