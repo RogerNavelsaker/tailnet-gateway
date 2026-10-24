@@ -2,7 +2,7 @@
 
 A Nix-built Tailscale + Caddy ingress sidecar. This repository owns the gateway only; Engram, Headroom, and Caveman packages and images live in their respective `nixpkg-*` repositories. The image is assembled with Nix `dockerTools`; no container-engine socket is needed during the build.
 
-The OCI image is available as `packages.image` / `packages.default`. GHCR names remain `ghcr.io/rogernavelsaker/tailnet-gateway`, `ghcr.io/rogernavelsaker/ts-caddy-gateway`, and the compatibility alias `ghcr.io/rogernavelsaker/agent-services-gateway`.
+The OCI image is available as `packages.image` / `packages.default` and is published as `ghcr.io/rogernavelsaker/tailnet-gateway`. The legacy `ts-caddy-gateway` and `agent-services-gateway` package names are retired; update consumers to the canonical image.
 
 ## Runtime model
 
@@ -78,4 +78,4 @@ nix flake check --accept-flake-config
 nix build .#image --no-link
 ```
 
-CI checks the flake, validates the entrypoint, and builds the gateway image. The publish workflow retains all three GHCR names and runs only on an explicit dispatch or version tag; ordinary main-branch pushes do not publish an image.
+CI checks the flake, validates the entrypoint, and builds the gateway image. The publish workflow emits tags only for `ghcr.io/rogernavelsaker/tailnet-gateway` and runs on an explicit dispatch or version tag; ordinary main-branch pushes do not publish an image.
