@@ -48,7 +48,6 @@ jobs:
         with:
           images: |
             ghcr.io/rogernavelsaker/tailnet-gateway
-            ghcr.io/rogernavelsaker/ts-caddy-gateway
           tags: |
             type=ref,event=branch
             type=ref,event=tag
